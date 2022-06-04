@@ -1,11 +1,11 @@
 import socket
 import threading
 
-this_username=[]
+this_username = []
 
 
 def app():
-    choice = int(input("1.friends 2.invite 3.invitations"))
+    choice = int(input("1.friends 2.invite 3.invitations 4.messages"))
     while choice < 1 or choice > 3:
         choice = input("Enter valid number")
     if choice == 1:
@@ -17,9 +17,15 @@ def print_friends(data):
     friends = eval(arr[1])
     cnt = 1
     for i in friends:
-        print(str(cnt) + ")"+str(i[0]))
+        print(str(cnt) + ")" + str(i[0]))
         cnt += 1
-    print(str(cnt)+")main menu")
+    print(str(cnt) + ")main menu")
+    n = int(input())
+    if n == cnt:
+        app()
+        return
+    msg = input("write your message for "+friends[n-1][0]+":")
+    s.send(("sendmessage#"+this_username[0]+"#"+friends[n-1][0]+"#"+msg).encode())
 
 def receiver(connection):
     while True:
