@@ -38,6 +38,17 @@ def sign_in(data, connection):
         connection.send("signinfailed".encode())
 
 
+def send_friends(data, connection):
+    arr = data.split("#")
+    sql = "SELECT user2 FROM friendship WHERE user1=%s"
+    my_cursor.execute(sql, (arr[1],))
+    friends = my_cursor.fetchall()
+    sql = "SELECT user1 FROM friendship WHERE user2=%s"
+    my_cursor.execute(sql, (arr[1],))
+    friends2 = my_cursor.fetchall()
+    friends3 = friends + friends2
+    connection.send(("friends#"+str(friends3)).encode())
+
 def handler(connection):
     while True:
         data = connection.recv(1024).decode()
@@ -46,6 +57,8 @@ def handler(connection):
             sign_up(data, connection)
         if arr[0] == "signin":
             sign_in(data, connection)
+        if arr[0] == "friends":
+            send_friends(data, connection)
 
 
 if __name__ == '__main__':
