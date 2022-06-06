@@ -33,6 +33,9 @@ def sign_up(data, con):
     sql = "INSERT INTO user (fullname, username, password, email, phone, loggedin, active, date) VALUES (%s, %s, %s,%s, %s, %s, %s, %s); "
     my_cursor.execute(sql, (arr[1], arr[2], arr[3], arr[4], arr[5], 0, 1, str(datetime.now().date()),))
     mydb.commit()
+    sql = "INSERT INTO securityquestion (question, username, answer) VALUES (%s, %s, %s); "
+    my_cursor.execute(sql, (arr[6], arr[2], arr[7],))
+    mydb.commit()
     print("Done")
 
 
@@ -68,6 +71,53 @@ def send_message(data, connection):
     mydb.commit()
 
 
+def invite(data, connection):
+    arr = data.split("#")
+    sql = "SELECT * FROM user WHERE username=%s"
+    my_cursor.execute(sql, (arr[2],))
+    res = my_cursor.fetchall()
+    if not (len(res) == 0):
+        sql = "INSERT INTO invitations (inviter, invited, success) VALUES ( %s, %s, %s); "
+        my_cursor.execute(sql, (arr[1], arr[2], 0,))
+        mydb.commit()
+        connection.send(("inviteresult#invite sent!").encode())
+        return
+    connection.send(("inviteresult#theres no such username!").encode())
+
+
+def send_invitations(data, connection):
+    arr = data.split("#")
+    sql = "SELECT inviter FROM invitations WHERE invited=%s"
+    my_cursor.execute(sql, (arr[1],))
+    invitations = my_cursor.fetchall()
+    connection.send(("sendinvitations#" + str(invitations)).encode())
+
+
+def show_messages(data, connection):
+    arr = data.split("#")
+    sql = "SELECT * FROM message WHERE receiver=%s"
+    my_cursor.execute(sql, (arr[1],))
+    messages = my_cursor.fetchall()
+    connection.send(("showmessages#" + str(messages)).encode())
+
+
+def forgot_password(data, connection):
+    arr = data.split("#")
+    sql = "SELECT question FROM securityquestion WHERE username=%s"
+    my_cursor.execute(sql,(arr[1],))
+    question = my_cursor.fetchall()
+    connection.send(("question#"+str(question[0][0])).encode())
+    data = connection.recv(1024).decode()
+    sql = "SELECT question FROM securityquestion WHERE username=%s AND answer=%s"
+    my_cursor.execute(sql, (arr[1],data,))
+    res = my_cursor.fetchall()
+    if not(len(res) == 0):
+        sql = "SELECT password FROM user WHERE username=%s"
+        my_cursor.execute(sql, (arr[1],))
+        passs = my_cursor.fetchall()
+        connection.send(("showpass#"+"password:"+str(passs[0][0])).encode())
+    else:
+        connection.send("showpass#Wrong".encode())
 def handler(connection):
     while True:
         data = connection.recv(1024).decode()
@@ -80,7 +130,14 @@ def handler(connection):
             send_friends(data, connection)
         if arr[0] == "sendmessage":
             send_message(data, connection)
-
+        if arr[0] == "invite":
+            invite(data, connection)
+        if arr[0] == "invitations":
+            send_invitations(data, connection)
+        if arr[0] == "messages":
+            show_messages(data, connection)
+        if arr[0] == "forget":
+            forgot_password(data, connection)
 
 if __name__ == '__main__':
     my_cursor = mydb.cursor()
