@@ -1,3 +1,4 @@
+import datetime
 import socket
 import threading
 
@@ -5,8 +6,8 @@ this_username = []
 
 
 def app():
-    choice = int(input("1.friends 2.invite 3.invitations 4.messages"))
-    while choice < 1 or choice > 4:
+    choice = int(input("1.friends 2.invite 3.invitations 4.messages 5.block"))
+    while choice < 1 or choice > 5:
         choice = input("Enter valid number")
     if choice == 1:
         s.send(("friends#" + this_username[0]).encode())
@@ -20,6 +21,10 @@ def app():
         return
     if choice == 4:
         s.send(("messages#" + this_username[0]).encode())
+        return
+    if choice == 5:
+        blocked = input("Enter Who U Wanna Block")
+        s.send(("block#"+this_username[0]+"#"+blocked).encode())
         return
 
 
@@ -37,7 +42,7 @@ def print_friends(data):
         return
     msg = input("write your message for " + friends[n - 1][0] + ":")
     s.send(("sendmessage#" + this_username[0] + "#" + friends[n - 1][0] + "#" + msg).encode())
-
+    app()
 
 def print_invitations(data):
     arr = data.split("#")
@@ -51,6 +56,8 @@ def print_invitations(data):
     if n == cnt:
         app()
         return
+    s.send(("acceptinvite#"+invitations[n-1][0]+"#"+this_username[0]).encode())
+    app()
 
 
 def show_messages(data):
@@ -58,11 +65,30 @@ def show_messages(data):
     messages = eval(arr[1])
     cnt = 1
     for i in messages:
-        print(str(cnt) + ")" + str(i[5]) + "--------" + str(i[2]) + ":" + str(i[1]))
-        cnt += 1
+        if i[4] == "0":
+            if i[6] == 1:
+                print(str(cnt) + ")" + str(i[5]) + "--------" + str(i[2]) +" to "+ str(i[3])+ ":" + str(i[1])+" (seen)")
+                cnt += 1
+            else:
+                print(str(cnt) + ")" + str(i[5]) + "--------" + str(i[2]) + " to " + str(i[3]) + ":" + str(
+                    i[1]))
+                cnt += 1
+        else:
+            if not i[6] == 1:
+                print(str(cnt) + ")" + str(i[5]) + "--------" + str(i[2]) +" to "+ str(i[3])+ ":" + str(i[1])+"(liked)")
+                cnt += 1
+            else:
+                print(str(cnt) + ")" + str(i[5]) + "--------" + str(i[2]) + " to " + str(i[3]) + ":" + str(
+                    i[1]) + "(liked)(seen)")
+                cnt += 1
     print(str(cnt) + ")main menu")
     n = int(input())
+
     if n == cnt:
+        app()
+    else:
+        if messages[n-1][2] != this_username[0]:
+            s.send(("likemessage#"+str(messages[n-1][0])).encode())
         app()
         return
 
@@ -80,6 +106,22 @@ def show_pass(data):
     main_menu()
     return
 
+
+def penalty():
+    print("3 failed attempts \n you can login in 3 days after "+str(datetime.datetime.now()))
+
+
+def print_block(data):
+    arr = data.split("#")
+    print("user "+arr[1]+" blocked")
+    app()
+    return
+
+def print_unblock(data):
+    arr = data.split("#")
+    print("user "+arr[1]+" unblocked")
+    app()
+    return
 
 def receiver(connection):
     while True:
@@ -101,6 +143,7 @@ def receiver(connection):
             print_friends(data)
         elif arr[0] == "inviteresult":
             print(arr[1])
+            app()
         elif arr[0] == "sendinvitations":
             print_invitations(data)
         elif arr[0] == "showmessages":
@@ -109,7 +152,12 @@ def receiver(connection):
             show_question(data)
         elif arr[0] == "showpass":
             show_pass(data)
-
+        elif arr[0] == "penalty":
+            penalty()
+        elif arr[0] == "blocked":
+            print_block(data)
+        elif arr[0] == "unblocked":
+            print_unblock(data)
 
 def sign_in():
     username = input("Enter username:")
@@ -146,7 +194,7 @@ def forgot_password():
 def main_menu():
     sign = input("wanna 1.sign in or 2.sign up or 3.forgot password?")
     while not (sign == "1" or sign == "2" or sign == "3"):
-        sign = input("wanna 1.sign in or 2.sign up?")
+        sign = input("wanna 1.sign in or 2.sign up or 3.forgot password?")
     if sign == "1":
         sign_in()
     elif sign == "2":
