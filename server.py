@@ -39,8 +39,8 @@ def sign_up(data, con):
     my_cursor.execute(sql, (arr[2],))
     mydb.commit()
     print("Done")
-    sql = "INSERT INTO log(body,date) VALUES(%s signed up,%s)"
-    my_cursor.execute(sql, (arr[2], datetime.datetime.now()))
+    sql = "INSERT INTO log(body,dates) VALUES(%s,%s)"
+    my_cursor.execute(sql, (arr[2] + " signed up", datetime.datetime.now()))
     mydb.commit()
 
 
@@ -58,29 +58,23 @@ def sign_in(data, connection):
         my_cursor.execute(sql, (arr[1],))
         enddate = my_cursor.fetchall()
 
-
-
         if datetime.datetime.now() > datetime.datetime.now() - enddate[0][0] + datetime.timedelta(days=3):
             connection.send("signinsuccessful".encode())
             sql = "UPDATE loginattempts SET failedattempts=%s WHERE username = %s AND date"
             my_cursor.execute(sql, (0, arr[1]))
-            sql = "INSERT INTO log(body,date) VALUES(%s signed in,%s)"
-            my_cursor.execute(sql, (arr[1], datetime.datetime.now()))
+            sql = "INSERT INTO log(body,dates) VALUES(%s,%s)"
+            my_cursor.execute(sql, (arr[1] + " signed in", datetime.datetime.now()))
             mydb.commit()
             return
-
-
-
-
 
         connection.send("penalty#".encode())
         return
     if not (len(res) == 0):
         connection.send("signinsuccessful".encode())
-        sql = "UPDATE loginattempts SET failedattempts=%s WHERE username = %s AND date"
+        sql = "UPDATE loginattempts SET failedattempts=%s WHERE username = %s"
         my_cursor.execute(sql, (0, arr[1]))
-        sql = "INSERT INTO log(body,date) VALUES(%s signed in,%s)"
-        my_cursor.execute(sql, (arr[1], datetime.datetime.now()))
+        sql = "INSERT INTO log(body,dates) VALUES(%s,%s)"
+        my_cursor.execute(sql, (arr[1] + " signed in", datetime.datetime.now()))
         mydb.commit()
 
     else:
@@ -120,8 +114,8 @@ def send_message(data, connection):
         get_random_string(40), arr[3], arr[1], str(arr[2]), str(0),
         str(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")),))
     mydb.commit()
-    sql = "INSERT INTO log(body,date) VALUES(%s sent message to %s ,%s)"
-    my_cursor.execute(sql, (arr[1], arr[2], datetime.datetime.now()))
+    sql = "INSERT INTO log(body,dates) VALUES(%s ,%s)"
+    my_cursor.execute(sql, (arr[1] + " sent message to " + arr[2], datetime.datetime.now()))
     mydb.commit()
 
 
@@ -137,8 +131,8 @@ def invite(data, connection):
         connection.send(("inviteresult#invite sent!").encode())
         return
     connection.send(("inviteresult#theres no such username!").encode())
-    sql = "INSERT INTO log(body,date) VALUES(%s sent invite to %s,%s)"
-    my_cursor.execute(sql, (arr[1], arr[2], datetime.datetime.now()))
+    sql = "INSERT INTO log(body,dates) VALUES(%s,%s)"
+    my_cursor.execute(sql, (arr[1] + " sent invite to" + arr[2], datetime.datetime.now()))
     mydb.commit()
 
 
@@ -222,6 +216,25 @@ def block(data, connection):
         connection.send(("unblocked#" + arr[2]).encode())
 
 
+def search(data, connection):
+    arr = data.split("#")
+    sql = "SELECT username FROM user WHERE username LIKE '%%%s'"
+    my_cursor.execute(sql, (arr[2],))
+    res = my_cursor.fetchall()
+    print(res)
+    connection.send(("search#" + str(res)).encode())
+
+
+def delete(data, connection):
+    arr = data.split("#")
+    sql = "DELETE FROM user WHERE username = %s"
+    my_cursor.execute(sql, (arr[1],))
+    mydb.commit()
+    sql = "INSERT INTO log (body,dates) VALUES (%s,%s)"
+    my_cursor.execute(sql, (arr[1] + " deleted account", datetime.datetime.now(),))
+    mydb.commit()
+
+
 def handler(connection):
     while True:
         data = connection.recv(1024).decode()
@@ -248,6 +261,10 @@ def handler(connection):
             like_message(data, connection)
         if arr[0] == "block":
             block(data, connection)
+        if arr[0] == "search":
+            search(data, connection)
+        if arr[0] == "del":
+            delete(data, connection)
 
 
 if __name__ == '__main__':

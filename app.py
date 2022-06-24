@@ -6,8 +6,8 @@ this_username = []
 
 
 def app():
-    choice = int(input("1.friends 2.invite 3.invitations 4.messages 5.block"))
-    while choice < 1 or choice > 5:
+    choice = int(input("1.friends 2.invite 3.invitations 4.messages 5.block 6.search 7.del account"))
+    while choice < 1 or choice > 7:
         choice = input("Enter valid number")
     if choice == 1:
         s.send(("friends#" + this_username[0]).encode())
@@ -24,8 +24,15 @@ def app():
         return
     if choice == 5:
         blocked = input("Enter Who U Wanna Block")
-        s.send(("block#"+this_username[0]+"#"+blocked).encode())
+        s.send(("block#" + this_username[0] + "#" + blocked).encode())
         return
+    if choice == 6:
+        search = input("Enter Who U Wanna search")
+        s.send(("search#" + this_username[0] + "#" + search).encode())
+        return
+    if choice == 7:
+        s.send(("del#"+this_username[0]).encode())
+        exit()
 
 
 def print_friends(data):
@@ -123,6 +130,15 @@ def print_unblock(data):
     app()
     return
 
+
+def search(data):
+    arr = data.split("#")
+    res = eval(arr[1])
+    for i in res:
+        print(i[0])
+    app()
+    return
+
 def receiver(connection):
     while True:
         data = connection.recv(1024).decode()
@@ -158,6 +174,8 @@ def receiver(connection):
             print_block(data)
         elif arr[0] == "unblocked":
             print_unblock(data)
+        elif arr[0] == "search":
+            search(data)
 
 def sign_in():
     username = input("Enter username:")
@@ -181,6 +199,8 @@ def sign_up():
         email = input("enter valid email!!!:")
     while not any(c.isalpha() for c in password):
         password = input("password should contain at least one character:")
+    while not phone.isnumeric():
+        phone = input("Enter valid phone number")
     s.send((
                        "signup#" + fullname + "#" + username + "#" + password + "#" + email + "#" + phone + "#" + question + "#" + ans).encode())
 
